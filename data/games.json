@@ -1,25 +1,3 @@
 {
-  "games": [
-    {
-      "id": "g1",
-      "name": "Test",
-      "whitePlayerId": "p1",
-      "blackPlayerId": "p2",
-      "status": "completed",
-      "timeControl": "10+0",
-      "moves": [
-        "e4",
-        "e5",
-        "Bc4",
-        "Nc6",
-        "Qh5",
-        "Nf6",
-        "Qxf7#"
-      ],
-      "result": "white",
-      "endReason": "checkmate",
-      "startTime": "2026-06-30T10:00:00",
-      "endTime": "2026-06-30T10:12:00"
-    }
-  ]
+  "games": []
 }
