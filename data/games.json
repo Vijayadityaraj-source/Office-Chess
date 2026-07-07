@@ -1,0 +1,118 @@
+{
+  "games": [
+    {
+      "id": "g1",
+      "name": "Quarter Final - Match 1",
+      "whitePlayerId": "p1",
+      "blackPlayerId": "p2",
+      "status": "completed",
+      "timeControl": "10+0",
+      "moves": [
+        "e4",
+        "e5",
+        "Bc4",
+        "Nc6",
+        "Qh5",
+        "Nf6",
+        "Qxf7#"
+      ],
+      "result": "white",
+      "endReason": "checkmate",
+      "startTime": "2026-06-30T10:00:00",
+      "endTime": "2026-06-30T10:12:00"
+    },
+    {
+      "id": "g2",
+      "name": "Quarter Final - Match 2",
+      "whitePlayerId": "p3",
+      "blackPlayerId": "p4",
+      "status": "completed",
+      "timeControl": "15+10",
+      "moves": [
+        "d4",
+        "d5",
+        "c4",
+        "e6",
+        "Nc3",
+        "Nf6",
+        "Bg5",
+        "Be7"
+      ],
+      "result": "draw",
+      "endReason": "draw_agreement",
+      "startTime": "2026-06-30T11:00:00",
+      "endTime": "2026-06-30T11:35:00"
+    },
+    {
+      "id": "g3",
+      "name": "Semi Final - Match 1",
+      "whitePlayerId": "p5",
+      "blackPlayerId": "p6",
+      "status": "completed",
+      "timeControl": "10+0",
+      "moves": [
+        "e4"
+      ],
+      "result": "black",
+      "endReason": "timeout",
+      "startTime": "2026-07-05T16:47:38",
+      "endTime": "2026-07-05T16:48:04"
+    },
+    {
+      "id": "g4",
+      "name": "Live Exhibition Game",
+      "whitePlayerId": "p1",
+      "blackPlayerId": "p3",
+      "status": "completed",
+      "timeControl": "10+0",
+      "moves": [
+        "e4",
+        "c5",
+        "Nf3",
+        "d6",
+        "d4"
+      ],
+      "result": "black",
+      "endReason": "timeout",
+      "startTime": "2026-07-05T09:30:00",
+      "endTime": "2026-07-05T13:56:37"
+    },
+    {
+      "id": "g5",
+      "name": "knockout - match 5",
+      "whitePlayerId": "p2",
+      "blackPlayerId": "p4",
+      "status": "completed",
+      "timeControl": "10+0",
+      "moves": [
+        "d3",
+        "f6",
+        "e4",
+        "d5"
+      ],
+      "result": "white",
+      "endReason": "timeout",
+      "startTime": "2026-07-05T16:49:04",
+      "endTime": "2026-07-05T16:49:18"
+    },
+    {
+      "id": "g6",
+      "name": "lol",
+      "whitePlayerId": "p1",
+      "blackPlayerId": "p2",
+      "status": "ongoing",
+      "timeControl": "10+0",
+      "moves": [
+        "e3",
+        "f5",
+        "c3",
+        "g5",
+        "Qh5#"
+      ],
+      "result": null,
+      "endReason": null,
+      "startTime": "2026-07-07T12:44:27",
+      "endTime": null
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "players": [
+    {
+      "id": "p1",
+      "name": "John Doe",
+      "department": "e430283"
+    },
+    {
+      "id": "p2",
+      "name": "Jane Smith",
+      "department": "e430900"
+    },
+    {
+      "id": "p3",
+      "name": "Alex Chen",
+      "department": "e430989"
+    },
+    {
+      "id": "p4",
+      "name": "Maria Garcia",
+      "department": "e439089"
+    },
+    {
+      "id": "p5",
+      "name": "Sam Wilson",
+      "department": "e430908"
+    },
+    {
+      "id": "p6",
+      "name": "Priya Patel",
+      "department": "e439089"
+    },
+    {
+      "id": "p7",
+      "name": "vijay",
+      "department": "e459480"
+    }
+  ]
+}

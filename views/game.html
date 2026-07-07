@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#769656" />
+  <title>Game · Office Chess</title>
+  <link rel="stylesheet" href="/public/css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main>
+    <div id="viewer">
+      <div class="spinner"></div>
+    </div>
+  </main>
+
+  <template id="viewer-tpl">
+    <div class="section-title" style="margin-bottom:.5rem">
+      <span id="game-name"></span>
+      <a href="/" class="text-muted" style="font-size:.8rem">&lsaquo; Back</a>
+    </div>
+
+    <div id="result-banner" class="hidden"></div>
+
+    <!-- Black player (top) -->
+    <div class="player-bar" id="top-player"></div>
+
+    <div class="card-pad" style="padding:0">
+      <div id="board"></div>
+    </div>
+
+    <!-- White player (bottom) -->
+    <div class="player-bar" id="bottom-player"></div>
+
+    <div class="nav-controls">
+      <button class="btn" id="nav-start" title="Start">&#9198;</button>
+      <button class="btn" id="nav-prev" title="Back">&#9204;</button>
+      <button class="btn" id="nav-next" title="Forward">&#9205;</button>
+      <button class="btn" id="nav-end" title="End">&#9197;</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Moves</span></div>
+      <div class="card"><div class="moves" id="movelist"></div></div>
+    </div>
+  </template>
+
+  <script src="/public/js/vendor/chess.min.js"></script>
+  <script src="/public/js/board.js"></script>
+  <script src="/public/js/util.js"></script>
+  <script src="/public/js/game-viewer.js"></script>
+</body>
+</html>

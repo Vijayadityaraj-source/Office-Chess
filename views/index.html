@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#769656" />
+  <title>Office Chess · Tournament</title>
+  <link rel="stylesheet" href="/public/css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main>
+    <!-- Ongoing match -->
+    <section class="section" id="ongoing-section">
+      <div class="section-title">
+        <span>Live Match</span>
+        <span id="live-flag"></span>
+      </div>
+      <div id="ongoing"></div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="section">
+      <div class="section-title"><span>Leaderboard</span></div>
+      <div class="card" id="leaderboard"></div>
+    </section>
+
+    <!-- Upcoming matches -->
+    <section class="section">
+      <div class="section-title">
+        <span>Upcoming Matches</span>
+        <button class="icon-btn" id="add-upcoming-btn" title="Schedule a game" aria-label="Schedule a game">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add
+        </button>
+      </div>
+      <div class="card" id="upcoming"></div>
+    </section>
+
+    <!-- Previous games -->
+    <section class="section">
+      <div class="section-title"><span>Previous Games</span></div>
+      <div class="card" id="previous"></div>
+      <div class="mt-1" id="loadmore-wrap"></div>
+    </section>
+  </main>
+
+  <!-- Schedule-a-game modal -->
+  <div class="modal-overlay hidden" id="add-modal">
+    <div class="modal card">
+      <div class="modal-head">
+        <span>Schedule a Game</span>
+        <button class="icon-btn" id="add-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="card-pad">
+        <div class="grid-2">
+          <label class="field">
+            <span class="lbl">White</span>
+            <select id="add-white"></select>
+          </label>
+          <label class="field">
+            <span class="lbl">Black</span>
+            <select id="add-black"></select>
+          </label>
+        </div>
+        <label class="field">
+          <span class="lbl">Game name</span>
+          <input id="add-name" type="text" placeholder="e.g. Semi Final - Match 2" />
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span class="lbl">Time control</span>
+            <input id="add-tc" type="text" value="10+0" />
+          </label>
+          <label class="field">
+            <span class="lbl">Date &amp; time</span>
+            <input id="add-time" type="datetime-local" />
+          </label>
+        </div>
+        <button class="btn btn-primary btn-block" id="add-save">Add to Upcoming</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/public/js/vendor/chess.min.js"></script>
+  <script src="/public/js/board.js"></script>
+  <script src="/public/js/util.js"></script>
+  <script src="/public/js/app.js"></script>
+</body>
+</html>
