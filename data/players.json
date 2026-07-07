@@ -2,38 +2,113 @@
   "players": [
     {
       "id": "p1",
-      "name": "John Doe",
-      "department": "e430283"
+      "name": "Kasinath Sangem",
+      "department": "e430273"
     },
     {
       "id": "p2",
-      "name": "Jane Smith",
-      "department": "e430900"
+      "name": "Srinivasa Rahul Reddy Gandluru",
+      "department": "e430283"
     },
     {
       "id": "p3",
-      "name": "Alex Chen",
-      "department": "e430989"
+      "name": "A Venkata Vignesh Reddy",
+      "department": "e430277"
     },
     {
       "id": "p4",
-      "name": "Maria Garcia",
-      "department": "e439089"
+      "name": "Kesav Santhosh",
+      "department": "e430294"
     },
     {
       "id": "p5",
-      "name": "Sam Wilson",
-      "department": "e430908"
+      "name": "Uday Kumar Reddy Sama",
+      "department": "e430280"
     },
     {
       "id": "p6",
-      "name": "Priya Patel",
-      "department": "e439089"
+      "name": "Vijayaditya Raj Rapaka",
+      "department": "e430274"
     },
     {
       "id": "p7",
-      "name": "vijay",
-      "department": "e459480"
+      "name": "Meenal Wath",
+      "department": "e441376"
+    },
+    {
+      "id": "p8",
+      "name": "Reeha Shaik",
+      "department": "e430298"
+    },
+    {
+      "id": "p9",
+      "name": "Dondeti Chandra Prakash Reddy",
+      "department": "e430319"
+    },
+    {
+      "id": "p10",
+      "name": "Anil Namala",
+      "department": "e430206"
+    },
+    {
+      "id": "p11",
+      "name": "AKASH GUNDU",
+      "department": "e430320"
+    },
+    {
+      "id": "p12",
+      "name": "Abilash K",
+      "department": "e430169"
+    },
+    {
+      "id": "p13",
+      "name": "P Chandrashekar Reddy",
+      "department": "e430299"
+    },
+    {
+      "id": "p14",
+      "name": "Naresh Sadepalli",
+      "department": "e414779"
+    },
+    {
+      "id": "p15",
+      "name": "Krishna Kanth Mannee",
+      "department": "e412797"
+    },
+    {
+      "id": "p16",
+      "name": "Aditya Kondai",
+      "department": "e430278"
+    },
+    {
+      "id": "p17",
+      "name": "Thakur Yogesh Singh",
+      "department": "e413595"
+    },
+    {
+      "id": "p18",
+      "name": "Kethan Kali",
+      "department": "e413827"
+    },
+    {
+      "id": "p19",
+      "name": "MULLAPUDI SOURYA PRASAD",
+      "department": "e430092"
+    },
+    {
+      "id": "p20",
+      "name": "Shiva",
+      "department": "e430478"
+    },
+    {
+      "id": "p21",
+      "name": "Md Sohail Hussain",
+      "department": "e413951"
+    },
+    {
+      "id": "p22",
+      "name": "Abhishek Kumboji",
+      "department": "e414161"
     }
   ]
 }
