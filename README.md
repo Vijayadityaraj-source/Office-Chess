@@ -26,9 +26,24 @@ Then open <http://localhost:5000>.
 
 | Route        | Purpose                                                          |
 | ------------ | ---------------------------------------------------------------- |
-| `/`          | Home — live match (polled every 2.5s), upcoming, previous games. |
+| `/`          | Home — live match (polled every 2.5s), announcements, upcoming, previous games. |
 | `/game/<id>` | Game viewer — replay any game with ⏮ ◀ ▶ ⏭ controls and a clickable move list. |
-| `/log`       | Supervisor page — set up a game, then drag/click pieces to record moves (auto-saved), and finish with a result. |
+| `/login`     | Supervisor login (shared password). |
+| `/log`       | Supervisor page (login required) — set up a game, then drag/click pieces to record moves (auto-saved), and finish with a result. |
+
+## Supervisor auth
+
+Viewing is public. Writing (logging games, posting/deleting announcements,
+adding players, scheduling games) requires a supervisor login — a single shared
+password held in a Flask signed-cookie session. Configure via environment:
+
+| Env var              | Purpose                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `SUPERVISOR_PASSWORD`| The shared supervisor password (defaults to `chess` for dev).  |
+| `SECRET_KEY`         | Signs the session cookie. **Set a strong, stable value in prod** so sessions survive restarts and are shared across workers. |
+
+Auth endpoints: `GET /api/auth/status`, `POST /api/auth/login` `{password}`,
+`POST /api/auth/logout`. All write endpoints return `401` without a session.
 
 ## API
 

@@ -6,81 +6,128 @@
 
   var PAGE_SIZE = 4;
   var previousShown = PAGE_SIZE;
-  var ongoingBoard = null;
-  var ongoingSig = ""; // signature of the live game to detect changes
+  var ongoingSig = null; // identity of the live game (null forces first render)
   var miniBoards = []; // keep refs so we can render after insertion
+  var isSupervisor = false; // gates the compose box, delete buttons, add game
 
   // ---- Live / ongoing match ------------------------------------------------
 
+  // The home page no longer embeds the live board; it shows a compact matchup
+  // card with a button that opens the (auto-refreshing) live game page.
   function renderOngoing(game) {
     var section = document.getElementById("ongoing-section");
     var host = document.getElementById("ongoing");
     var flag = document.getElementById("live-flag");
 
+    // The card depends only on which game is live, so skip re-rendering while
+    // polling unless the live game itself changed (started / ended / swapped).
+    var sig = game ? game.id : "";
+    if (sig === ongoingSig) return;
+    ongoingSig = sig;
+
     if (!game) {
+      // Nothing live — hide the whole section (heading included) rather than
+      // leaving a lonely "Live Match" title over an empty card.
+      section.classList.add("hidden");
       flag.innerHTML = "";
-      host.innerHTML =
-        '<div class="card"><div class="empty">No live match right now.</div></div>';
-      ongoingBoard = null;
-      ongoingSig = "";
+      host.innerHTML = "";
       return;
     }
 
+    section.classList.remove("hidden");
     flag.innerHTML = '<span class="live-badge">Live</span>';
-
-    var pos = CT.positionFromMoves(game.moves || []);
-    var sig = game.id + ":" + (game.moves || []).length;
-
-    // Rebuild the card only when the game identity changes; otherwise just
-    // animate the board to the new position to avoid flicker while polling.
-    if (sig.split(":")[0] !== ongoingSig.split(":")[0] || !ongoingBoard) {
-      host.innerHTML =
-        '<div class="card">' +
-        '<div class="match-players">' +
-        '<span class="side"><span class="dot black"></span>' +
-        '<span class="name">' + CT.escapeHtml(CT.playerName(game.black)) + "</span></span>" +
-        '<span class="text-muted" style="font-size:.78rem">' +
-        CT.escapeHtml(game.timeControl || "") + "</span>" +
-        "</div>" +
-        '<div style="padding:0 .9rem"><div id="live-board"></div></div>' +
-        '<div class="match-players">' +
-        '<span class="side"><span class="dot white"></span>' +
-        '<span class="name">' + CT.escapeHtml(CT.playerName(game.white)) + "</span></span>" +
-        '<a class="text-muted" style="font-size:.8rem" href="/game/' + game.id + '">Open &rsaquo;</a>' +
-        "</div>" +
-        '<div class="moves" id="live-moves"></div>' +
-        "</div>";
-      ongoingBoard = new ChessBoard("#live-board", {
-        orientation: "white",
-        interactive: false,
-        showCoords: true,
-      });
-      ongoingBoard.el.classList.add("cb-static");
-      ongoingBoard.setPosition(pos.fen, false);
-    } else if (sig !== ongoingSig) {
-      ongoingBoard.setPosition(pos.fen, true);
-    }
-
-    if (pos.lastMove) ongoingBoard.highlight(pos.lastMove);
-    renderLiveMoves(game.moves || [], sig !== ongoingSig);
-    ongoingSig = sig;
+    host.innerHTML =
+      '<div class="card card-pad">' +
+      '<div class="match-players" style="padding:0 0 .85rem">' +
+      '<span class="side"><span class="dot white"></span>' +
+      '<span class="name">' + CT.escapeHtml(CT.playerName(game.white)) + "</span></span>" +
+      '<span class="text-muted" style="font-size:.85rem">vs</span>' +
+      '<span class="side"><span class="name">' +
+      CT.escapeHtml(CT.playerName(game.black)) + "</span>" +
+      '<span class="dot black"></span></span>' +
+      "</div>" +
+      '<a class="btn btn-primary btn-block" href="/game/' + game.id + '">Watch Live &rarr;</a>' +
+      "</div>";
   }
 
-  function renderLiveMoves(moves, scroll) {
-    var host = document.getElementById("live-moves");
-    if (!host) return;
-    var rows = CT.moveRows(moves);
-    var html = rows
-      .map(function (r) {
+  // ---- Announcements -------------------------------------------------------
+
+  function renderAnnouncements(items) {
+    var host = document.getElementById("announcements");
+    if (!items.length) {
+      host.classList.remove("scrollable");
+      host.style.maxHeight = "";
+      host.innerHTML = '<div class="empty">No announcements yet.</div>';
+      return;
+    }
+    host.innerHTML = items
+      .map(function (a) {
+        var isResult = a.kind === "result";
+        // Only supervisors get a delete control.
+        var del = isSupervisor
+          ? '<button class="announce-del" data-id="' + a.id +
+            '" title="Delete" aria-label="Delete">&times;</button>'
+          : "";
         return (
-          '<span class="mv-num">' + r.num + ".</span>" +
-          '<span class="mv">' + CT.escapeHtml(r.white) + "</span>" +
-          '<span class="mv">' + (r.black ? CT.escapeHtml(r.black) : "") + "</span>"
+          '<div class="announce-row' + (isResult ? " result" : "") + '">' +
+          '<div class="announce-body">' +
+          '<div class="announce-text">' + CT.escapeHtml(a.text) + "</div>" +
+          '<div class="announce-time">' +
+          CT.escapeHtml(formatTime(a.createdAt)) + "</div>" +
+          "</div>" + del +
+          "</div>"
         );
       })
       .join("");
-    host.innerHTML = html || '<span class="text-muted">No moves yet.</span>';
-    if (scroll) host.scrollTop = host.scrollHeight;
+    Array.prototype.forEach.call(
+      host.querySelectorAll(".announce-del"),
+      function (btn) {
+        btn.onclick = function () { deleteAnnouncement(btn.dataset.id); };
+      }
+    );
+
+    // Contain the list to the first 3 announcements; scroll for the rest.
+    // Measuring the 4th row keeps exactly 3 visible even when text wraps.
+    var rows = host.querySelectorAll(".announce-row");
+    if (rows.length > 3) {
+      host.classList.add("scrollable");
+      host.style.maxHeight = (rows[3].offsetTop - rows[0].offsetTop) + "px";
+    } else {
+      host.classList.remove("scrollable");
+      host.style.maxHeight = "";
+    }
+  }
+
+  function loadAnnouncements() {
+    CT.api("/api/announcements").then(renderAnnouncements).catch(noop);
+  }
+
+  function postAnnouncement() {
+    var input = document.getElementById("announce-input");
+    var btn = document.getElementById("announce-post");
+    var text = input.value.trim();
+    if (!text) { input.focus(); return; }
+    btn.disabled = true;
+    CT.api("/api/announcements", {
+      method: "POST",
+      headers: CT.jsonHeaders,
+      body: JSON.stringify({ text: text }),
+    })
+      .then(function () {
+        input.value = "";
+        btn.disabled = false;
+        loadAnnouncements();
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        CT.toast(e.message);
+      });
+  }
+
+  function deleteAnnouncement(id) {
+    CT.api("/api/announcements/" + encodeURIComponent(id), { method: "DELETE" })
+      .then(loadAnnouncements)
+      .catch(function (e) { CT.toast(e.message); });
   }
 
   // ---- Upcoming ------------------------------------------------------------
@@ -183,6 +230,7 @@
   // ---- Data loading --------------------------------------------------------
 
   function loadStatic() {
+    loadAnnouncements();
     CT.api("/api/games?status=upcoming").then(renderUpcoming).catch(noop);
     CT.api("/api/games?status=completed").then(function (games) {
       // Most recent first.
@@ -276,11 +324,28 @@
       "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
   }
 
-  // Initial load + polling for the live board every 2.5s.
+  // Reveal supervisor-only controls (compose box, schedule button) once we know
+  // the auth state, and re-render announcements so delete buttons appear.
+  function applyAuthUI() {
+    document.getElementById("announce-compose-card")
+      .classList.toggle("hidden", !isSupervisor);
+    document.getElementById("add-upcoming-btn")
+      .classList.toggle("hidden", !isSupervisor);
+    loadAnnouncements();
+  }
+
+  CT.getAuthStatus()
+    .then(function (s) { isSupervisor = !!(s && s.authenticated); })
+    .catch(function () { isSupervisor = false; })
+    .then(applyAuthUI);
+
+  // Players are only needed for the supervisor's schedule-a-game modal.
   CT.api("/api/players").then(function (p) {
     players = p;
     setupAddModal();
   }).catch(noop);
+
+  document.getElementById("announce-post").onclick = postAnnouncement;
 
   loadStatic();
   pollOngoing();

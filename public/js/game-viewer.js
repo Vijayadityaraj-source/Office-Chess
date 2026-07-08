@@ -43,17 +43,7 @@
     document.getElementById("top-player").innerHTML = playerBar(game.black, "Black");
     document.getElementById("bottom-player").innerHTML = playerBar(game.white, "White");
 
-    // Result banner (for completed games).
-    var banner = document.getElementById("result-banner");
-    if (game.status === "completed") {
-      banner.className = "result-banner " + (game.result || "draw");
-      banner.textContent = CT.resultText(game);
-      banner.classList.remove("hidden");
-    } else if (game.status === "ongoing") {
-      banner.className = "result-banner ongoing";
-      banner.textContent = "Game in progress";
-      banner.classList.remove("hidden");
-    }
+    setBanner();
 
     board = new ChessBoard("#board", {
       orientation: "white",
@@ -74,6 +64,22 @@
     renderMoveList();
     // Start at the final position so the viewer opens on the outcome.
     goTo(positions.length - 1, false);
+  }
+
+  function setBanner() {
+    var banner = document.getElementById("result-banner");
+    if (!banner) return;
+    if (game.status === "completed") {
+      banner.className = "result-banner " + (game.result || "draw");
+      banner.textContent = CT.resultText(game);
+      banner.classList.remove("hidden");
+    } else if (game.status === "ongoing") {
+      banner.className = "result-banner ongoing";
+      banner.textContent = "Game in progress";
+      banner.classList.remove("hidden");
+    } else {
+      banner.classList.add("hidden");
+    }
   }
 
   function onKey(e) {
@@ -139,6 +145,52 @@
     if (active) active.scrollIntoView({ block: "nearest" });
   }
 
+  // ---- Live updates -------------------------------------------------------
+
+  var pollTimer = null;
+
+  // Apply a freshly fetched game record without rebuilding the board, so the
+  // page updates smoothly while a live game is in progress.
+  function applyUpdate(g) {
+    var noChange =
+      g.status === game.status &&
+      (g.moves || []).length === (game.moves || []).length;
+    if (noChange) return;
+
+    // If the viewer is sitting on the latest move, keep following the game
+    // live; if the user has scrolled back to review, leave them where they are.
+    var following = ply === positions.length - 1;
+    var statusChanged = g.status !== game.status;
+
+    game = g;
+    precomputePositions(g.moves || []);
+    renderMoveList();
+    if (statusChanged) setBanner();
+
+    if (following) {
+      goTo(positions.length - 1, true);
+    } else {
+      ply = Math.min(ply, positions.length - 1);
+      updateControls();
+      highlightActiveMove();
+    }
+  }
+
+  function startLivePolling() {
+    if (game.status !== "ongoing") return;
+    pollTimer = setInterval(function () {
+      CT.api("/api/games/" + encodeURIComponent(gameId))
+        .then(function (g) {
+          applyUpdate(g);
+          if (g.status !== "ongoing" && pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+        })
+        .catch(function () { /* ignore transient poll errors */ });
+    }, 2500);
+  }
+
   // ---- Load ---------------------------------------------------------------
 
   CT.api("/api/games/" + encodeURIComponent(gameId))
@@ -146,6 +198,7 @@
       game = g;
       precomputePositions(g.moves || []);
       render();
+      startLivePolling();
     })
     .catch(function (err) {
       document.getElementById("viewer").innerHTML =

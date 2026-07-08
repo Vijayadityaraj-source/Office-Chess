@@ -512,31 +512,42 @@
 
   // ---- Init ----------------------------------------------------------------
 
-  document.getElementById("start-btn").onclick = startGame;
-  document.getElementById("upcoming-select").onchange = onUpcomingChange;
-  setupPlayerModal();
+  function start() {
+    document.getElementById("start-btn").onclick = startGame;
+    document.getElementById("upcoming-select").onchange = onUpcomingChange;
+    setupPlayerModal();
 
-  // Load players first (needed for the setup form), then check whether a game
-  // is already in progress and, if so, resume it. Otherwise load the list of
-  // scheduled games the supervisor can start.
-  CT.api("/api/players")
-    .then(function (p) {
-      players = p;
-      fillPlayerSelects();
-      return CT.api("/api/games/ongoing");
+    // Load players first (needed for the setup form), then check whether a game
+    // is already in progress and, if so, resume it. Otherwise load the list of
+    // scheduled games the supervisor can start.
+    CT.api("/api/players")
+      .then(function (p) {
+        players = p;
+        fillPlayerSelects();
+        return CT.api("/api/games/ongoing");
+      })
+      .then(function (ongoing) {
+        if (ongoing && ongoing.id) {
+          resumeGame(ongoing);
+          return null;
+        }
+        return CT.api("/api/games?status=upcoming");
+      })
+      .then(function (list) {
+        if (list) {
+          upcoming = list;
+          fillUpcomingSelect();
+        }
+      })
+      .catch(function (e) { CT.toast("Load failed: " + e.message); });
+  }
+
+  // The log page is supervisor-only. Non-supervisors are sent to the login
+  // page (and the server rejects their writes regardless).
+  CT.getAuthStatus()
+    .then(function (s) {
+      if (!s || !s.authenticated) { window.location.replace("/login"); return; }
+      start();
     })
-    .then(function (ongoing) {
-      if (ongoing && ongoing.id) {
-        resumeGame(ongoing);
-        return null;
-      }
-      return CT.api("/api/games?status=upcoming");
-    })
-    .then(function (list) {
-      if (list) {
-        upcoming = list;
-        fillUpcomingSelect();
-      }
-    })
-    .catch(function (e) { CT.toast("Load failed: " + e.message); });
+    .catch(function () { window.location.replace("/login"); });
 })();

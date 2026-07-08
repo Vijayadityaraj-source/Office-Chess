@@ -11,8 +11,8 @@
   <div id="header"></div>
 
   <main>
-    <!-- Ongoing match -->
-    <section class="section" id="ongoing-section">
+    <!-- Ongoing match (revealed by JS only when a game is live) -->
+    <section class="section hidden" id="ongoing-section">
       <div class="section-title">
         <span>Live Match</span>
         <span id="live-flag"></span>
@@ -20,11 +20,24 @@
       <div id="ongoing"></div>
     </section>
 
+    <!-- Announcements -->
+    <section class="section">
+      <div class="section-title"><span>Announcements</span></div>
+      <div class="card card-pad hidden" id="announce-compose-card">
+        <div class="announce-compose">
+          <textarea id="announce-input" rows="2" maxlength="500"
+            placeholder="Post an announcement…"></textarea>
+          <button class="btn btn-primary" id="announce-post">Post</button>
+        </div>
+      </div>
+      <div class="card mt-1" id="announcements"></div>
+    </section>
+
     <!-- Upcoming matches -->
     <section class="section">
       <div class="section-title">
         <span>Upcoming Matches</span>
-        <button class="icon-btn" id="add-upcoming-btn" title="Schedule a game" aria-label="Schedule a game">
+        <button class="icon-btn hidden" id="add-upcoming-btn" title="Schedule a game" aria-label="Schedule a game">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>

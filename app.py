@@ -6,13 +6,16 @@ Serves the mobile-first web app and a small JSON API backed by flat files
 concurrent auto-saves from the supervisor page don't corrupt the store.
 """
 
+import hmac
 import json
 import os
 import threading
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from flask import Flask, jsonify, request, send_from_directory, abort, render_template, send_from_directory
+from flask import (
+    Flask, jsonify, request, send_from_directory, abort, session,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -21,16 +24,45 @@ VIEWS_DIR = os.path.join(BASE_DIR, "views")
 
 PLAYERS_FILE = os.path.join(DATA_DIR, "players.json")
 GAMES_FILE = os.path.join(DATA_DIR, "games.json")
+ANNOUNCEMENTS_FILE = os.path.join(DATA_DIR, "announcements.json")
 
 # Guards all reads/writes to the JSON files. The tournament is small, so a
 # single global lock is more than enough and keeps the store consistent.
 _lock = threading.Lock()
 
 app = Flask(
-    __name__, 
+    __name__,
     static_folder='public',      # Tells Flask where CSS/JS/images are
     template_folder='views'     # Tells Flask where HTML files are
 )
+
+# ---------------------------------------------------------------------------
+# Supervisor auth
+#
+# A single shared supervisor password gates every write action. Login state is
+# kept in a Flask signed-cookie session, so it works across gunicorn workers as
+# long as SECRET_KEY is stable (set it in the deploy environment). Read-only
+# endpoints stay public — anyone can view games and announcements.
+# ---------------------------------------------------------------------------
+
+# SECRET_KEY signs the session cookie; it MUST be set (and stable) in prod so
+# sessions survive restarts and are shared across workers. The dev fallback is
+# only for local use.
+app.secret_key = os.environ.get("SECRET_KEY") or "dev-only-insecure-secret"
+app.permanent_session_lifetime = timedelta(days=7)
+
+# The shared supervisor password. Override via env in production.
+SUPERVISOR_PASSWORD = os.environ.get("SUPERVISOR_PASSWORD", "chess")
+
+
+def is_supervisor():
+    return bool(session.get("supervisor"))
+
+
+def require_supervisor():
+    """Abort with 401 unless the current session is a logged-in supervisor."""
+    if not is_supervisor():
+        abort(401, description="Supervisor login required")
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +84,7 @@ USE_REDIS = bool(UPSTASH_URL and UPSTASH_TOKEN)
 _REDIS_KEYS = {
     PLAYERS_FILE: "chess:players",
     GAMES_FILE: "chess:games",
+    ANNOUNCEMENTS_FILE: "chess:announcements",
 }
 
 
@@ -124,6 +157,14 @@ def save_games(games):
     _write_json(GAMES_FILE, {"games": games})
 
 
+def load_announcements():
+    return _read_json(ANNOUNCEMENTS_FILE).get("announcements", [])
+
+
+def save_announcements(items):
+    _write_json(ANNOUNCEMENTS_FILE, {"announcements": items})
+
+
 def player_map():
     return {p["id"]: p for p in load_players()}
 
@@ -146,6 +187,61 @@ def next_player_id(players):
     return _next_id(players, "p")
 
 
+def next_announcement_id(items):
+    return _next_id(items, "a")
+
+
+def _make_announcement(items, text, kind="manual", game_id=None):
+    """Append a new announcement to `items` and return it."""
+    ann = {
+        "id": next_announcement_id(items),
+        "text": text,
+        "kind": kind,          # "manual" (typed) or "result" (auto on finish)
+        "gameId": game_id,
+        "createdAt": now_iso(),
+    }
+    items.append(ann)
+    return ann
+
+
+# How each end reason reads in a result announcement.
+_END_REASON_PHRASE = {
+    "checkmate": "by checkmate",
+    "stalemate": "by stalemate",
+    "timeout": "on time",
+    "resignation": "by resignation",
+    "draw_agreement": "by agreement",
+    "insufficient": "by insufficient material",
+    "repetition": "by repetition",
+}
+
+
+def _result_announcement_text(game, players):
+    """Build the auto-announcement sentence for a just-finished game."""
+    white = players.get(game.get("whitePlayerId")) or {}
+    black = players.get(game.get("blackPlayerId")) or {}
+    wname = white.get("name", "White")
+    bname = black.get("name", "Black")
+    reason = _END_REASON_PHRASE.get(game.get("endReason"), "")
+    name = game.get("name") or "the match"
+    result = game.get("result")
+
+    if result == "draw":
+        body = "{} and {} drew".format(wname, bname)
+        if reason:
+            body += " " + reason
+        return "\U0001F91D {} in “{}”.".format(body, name)  # 🤝
+
+    if result == "black":
+        winner, loser = bname, wname
+    else:  # default to white for any non-draw result
+        winner, loser = wname, bname
+    body = "{} beat {}".format(winner, loser)
+    if reason:
+        body += " " + reason
+    return "\U0001F3C6 {} in “{}”.".format(body, name)  # 🏆
+
+
 def now_iso():
     return datetime.now().isoformat(timespec="seconds")
 
@@ -156,7 +252,7 @@ def now_iso():
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return send_from_directory(VIEWS_DIR, "index.html")
 
 
 @app.route("/game/<game_id>")
@@ -170,9 +266,41 @@ def log_page():
     return send_from_directory(VIEWS_DIR, "log.html")
 
 
+@app.route("/login")
+def login_page():
+    return send_from_directory(VIEWS_DIR, "login.html")
+
+
 @app.route("/public/<path:filename>")
 def public_files(filename):
     return send_from_directory(PUBLIC_DIR, filename)
+
+
+# ---------------------------------------------------------------------------
+# API — auth
+# ---------------------------------------------------------------------------
+
+@app.route("/api/auth/status", methods=["GET"])
+def api_auth_status():
+    return jsonify({"authenticated": is_supervisor()})
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_login():
+    body = request.get_json(force=True, silent=True) or {}
+    password = body.get("password") or ""
+    # Constant-time comparison avoids leaking the password via timing.
+    if hmac.compare_digest(password, SUPERVISOR_PASSWORD):
+        session["supervisor"] = True
+        session.permanent = True
+        return jsonify({"authenticated": True})
+    abort(401, description="Incorrect password")
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def api_logout():
+    session.pop("supervisor", None)
+    return jsonify({"authenticated": False})
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +314,7 @@ def api_players():
 
 @app.route("/api/players", methods=["POST"])
 def api_create_player():
+    require_supervisor()
     body = request.get_json(force=True, silent=True) or {}
     name = (body.get("name") or "").strip()
     if not name:
@@ -257,6 +386,7 @@ def api_game(game_id):
 
 @app.route("/api/games", methods=["POST"])
 def api_create_game():
+    require_supervisor()
     body = request.get_json(force=True, silent=True) or {}
     required = ["whitePlayerId", "blackPlayerId"]
     for field in required:
@@ -294,6 +424,7 @@ _UPDATABLE = {
 
 @app.route("/api/games/<game_id>", methods=["PUT"])
 def api_update_game(game_id):
+    require_supervisor()
     body = request.get_json(force=True, silent=True) or {}
 
     with _lock:
@@ -319,16 +450,33 @@ def api_update_game(game_id):
 
         # When a game is marked finished, stamp the end time if the client
         # didn't provide one.
+        newly_completed = (
+            target.get("status") == "completed" and prev_status != "completed"
+        )
         if target.get("status") == "completed" and not target.get("endTime"):
             target["endTime"] = now_iso()
 
         save_games(games)
+
+        # Auto-post a "who won and how" announcement the first time a game
+        # transitions to completed (the transition check prevents duplicates
+        # if the game is PUT again after finishing).
+        if newly_completed:
+            items = load_announcements()
+            _make_announcement(
+                items,
+                _result_announcement_text(target, player_map()),
+                kind="result",
+                game_id=target.get("id"),
+            )
+            save_announcements(items)
 
     return jsonify(_enrich(target, player_map()))
 
 
 @app.route("/api/games/<game_id>", methods=["DELETE"])
 def api_delete_game(game_id):
+    require_supervisor()
     with _lock:
         games = load_games()
         remaining = [g for g in games if g.get("id") != game_id]
@@ -336,6 +484,47 @@ def api_delete_game(game_id):
             abort(404, description="Game not found")
         save_games(remaining)
     return jsonify({"deleted": game_id})
+
+
+# ---------------------------------------------------------------------------
+# API — announcements
+# ---------------------------------------------------------------------------
+
+@app.route("/api/announcements", methods=["GET"])
+def api_announcements():
+    with _lock:
+        items = load_announcements()
+    items = sorted(items, key=lambda a: a.get("createdAt", ""), reverse=True)
+    return jsonify(items)
+
+
+@app.route("/api/announcements", methods=["POST"])
+def api_create_announcement():
+    require_supervisor()
+    body = request.get_json(force=True, silent=True) or {}
+    text = (body.get("text") or "").strip()
+    if not text:
+        abort(400, description="Announcement text is required")
+    if len(text) > 500:
+        abort(400, description="Announcement is too long (max 500 characters)")
+
+    with _lock:
+        items = load_announcements()
+        ann = _make_announcement(items, text, kind="manual")
+        save_announcements(items)
+    return jsonify(ann), 201
+
+
+@app.route("/api/announcements/<ann_id>", methods=["DELETE"])
+def api_delete_announcement(ann_id):
+    require_supervisor()
+    with _lock:
+        items = load_announcements()
+        remaining = [a for a in items if a.get("id") != ann_id]
+        if len(remaining) == len(items):
+            abort(404, description="Announcement not found")
+        save_announcements(remaining)
+    return jsonify({"deleted": ann_id})
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +589,7 @@ def api_leaderboard():
 # ---------------------------------------------------------------------------
 
 @app.errorhandler(400)
+@app.errorhandler(401)
 @app.errorhandler(404)
 @app.errorhandler(409)
 def _json_error(err):

@@ -65,14 +65,23 @@ a { color: var(--accent-dark); text-decoration: none; }
 
 .app-header nav {
   display: flex;
+  align-items: center;
   gap: 0.25rem;
 }
 
+/* The async auth slot must not form its own box, so its links are direct
+   flex children of <nav> and line up with Home. */
+.app-header nav #nav-auth { display: contents; }
+
 .app-header nav a {
+  display: inline-flex;
+  align-items: center;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   font-size: 0.85rem;
+  line-height: 1;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .app-header nav a.active,
@@ -336,6 +345,64 @@ main {
 }
 .moves .mv:hover { background: var(--off-white); }
 .moves .mv.active { background: var(--accent); color: #fff; }
+
+/* ---- Announcements ------------------------------------------------------ */
+
+.announce-compose {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+.announce-compose textarea {
+  flex: 1;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--ink);
+  resize: vertical;
+  min-height: 2.6rem;
+}
+.announce-compose textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.announce-compose .btn { flex: 0 0 auto; }
+
+#announcements.scrollable {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.announce-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--off-white);
+}
+.announce-row:last-child { border-bottom: none; }
+.announce-row.result { background: rgba(118, 150, 86, 0.08); }
+.announce-body { flex: 1; min-width: 0; }
+.announce-text { font-size: 0.92rem; line-height: 1.35; word-wrap: break-word; }
+.announce-time {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+.announce-del {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  cursor: pointer;
+}
+.announce-del:hover { color: #c0392b; }
 
 /* ---- Game list rows ----------------------------------------------------- */
 

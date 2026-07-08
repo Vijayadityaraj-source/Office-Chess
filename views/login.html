@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#769656" />
+  <title>Supervisor Login · Office Chess</title>
+  <link rel="stylesheet" href="/public/css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main>
+    <section class="section">
+      <div class="section-title"><span>Supervisor Login</span></div>
+      <div class="card card-pad">
+        <p class="text-muted" style="margin:0 0 1rem;font-size:.9rem;line-height:1.4">
+          This area is for tournament <strong>supervisors</strong> only. Logging
+          in lets you record games and post announcements. Anyone can view games
+          and announcements without logging in.
+        </p>
+        <form id="login-form">
+          <label class="field">
+            <span class="lbl">Password</span>
+            <input id="password" type="password" autocomplete="current-password"
+              placeholder="Supervisor password" autofocus />
+          </label>
+          <div id="login-error" class="hidden" style="color:#c0392b;font-size:.85rem;margin-bottom:.75rem"></div>
+          <button class="btn btn-primary btn-block" type="submit" id="login-btn">Log in</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="/public/js/util.js"></script>
+  <script src="/public/js/login.js"></script>
+</body>
+</html>

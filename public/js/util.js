@@ -72,25 +72,52 @@
     return reason ? base + " by " + reason : base;
   }
 
-  // Render the shared sticky header into the page.
+  function getAuthStatus() {
+    return api("/api/auth/status");
+  }
+
+  // Render the shared sticky header. The Home link is always present; the
+  // auth-dependent link (Login vs Log Game + Logout) is filled in async.
   function renderHeader(active) {
-    var links = [
-      { href: "/", label: "Home", key: "home" },
-      { href: "/log", label: "Log Game", key: "log" },
-    ];
-    var nav = links
-      .map(function (l) {
-        var cls = l.key === active ? "active" : "";
-        return '<a href="' + l.href + '" class="' + cls + '">' + l.label + "</a>";
-      })
-      .join("");
+    var homeCls = active === "home" ? "active" : "";
     var html =
       '<header class="app-header">' +
       '<a class="brand" href="/"><span class="mark">&#9822;</span> Office Chess</a>' +
-      "<nav>" + nav + "</nav>" +
+      '<nav><a href="/" class="' + homeCls + '">Home</a>' +
+      '<span id="nav-auth"></span></nav>' +
       "</header>";
     var mount = document.getElementById("header");
     if (mount) mount.outerHTML = html;
+    refreshAuthNav(active);
+  }
+
+  function refreshAuthNav(active) {
+    var slot = document.getElementById("nav-auth");
+    if (!slot) return;
+    getAuthStatus()
+      .then(function (s) {
+        if (s && s.authenticated) {
+          slot.innerHTML =
+            '<a href="/log" class="' + (active === "log" ? "active" : "") +
+            '">Log Game</a><a href="#" id="logout-link">Logout</a>';
+          var lo = document.getElementById("logout-link");
+          if (lo) {
+            lo.onclick = function (e) {
+              e.preventDefault();
+              api("/api/auth/logout", { method: "POST" })
+                .then(function () { window.location.href = "/"; })
+                .catch(function () { window.location.href = "/"; });
+            };
+          }
+        } else {
+          slot.innerHTML =
+            '<a href="/login" class="' + (active === "login" ? "active" : "") +
+            '">Login</a>';
+        }
+      })
+      .catch(function () {
+        slot.innerHTML = '<a href="/login">Login</a>';
+      });
   }
 
   // Lightweight bottom toast.
@@ -135,6 +162,7 @@
     playerName: playerName,
     resultText: resultText,
     renderHeader: renderHeader,
+    getAuthStatus: getAuthStatus,
     toast: toast,
     moveRows: moveRows,
   };
