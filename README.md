@@ -2,7 +2,7 @@
 
 A mobile-first, minimal web app for tracking office chess games. A supervisor
 logs moves on one device during the live game; everyone else watches the board
-update in near real-time, browses the leaderboard, and replays finished games.
+update in near real-time, sees upcoming matches, and replays finished games.
 
 ## Stack
 
@@ -26,7 +26,7 @@ Then open <http://localhost:5000>.
 
 | Route        | Purpose                                                          |
 | ------------ | ---------------------------------------------------------------- |
-| `/`          | Home — live match (polled every 2.5s), leaderboard, upcoming, previous games. |
+| `/`          | Home — live match (polled every 2.5s), upcoming, previous games. |
 | `/game/<id>` | Game viewer — replay any game with ⏮ ◀ ▶ ⏭ controls and a clickable move list. |
 | `/log`       | Supervisor page — set up a game, then drag/click pieces to record moves (auto-saved), and finish with a result. |
 

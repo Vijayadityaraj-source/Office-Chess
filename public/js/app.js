@@ -1,4 +1,4 @@
-/* Home page: live match (polled), leaderboard, upcoming, previous games. */
+/* Home page: live match (polled), upcoming, previous games. */
 (function () {
   "use strict";
 
@@ -81,42 +81,6 @@
       .join("");
     host.innerHTML = html || '<span class="text-muted">No moves yet.</span>';
     if (scroll) host.scrollTop = host.scrollHeight;
-  }
-
-  // ---- Leaderboard ---------------------------------------------------------
-
-  function renderLeaderboard(rows) {
-    var host = document.getElementById("leaderboard");
-    var active = rows.filter(function (r) { return r.played > 0; });
-    if (!active.length) {
-      host.innerHTML = '<div class="empty">No games played yet.</div>';
-      return;
-    }
-    var body = active
-      .map(function (r, i) {
-        return (
-          "<tr>" +
-          '<td class="rank">' + (i + 1) + "</td>" +
-          "<td>" + CT.escapeHtml(r.name) +
-          '<div class="sub">' + CT.escapeHtml(r.department || "") + "</div></td>" +
-          '<td class="num">' + r.wins + "</td>" +
-          '<td class="num">' + r.losses + "</td>" +
-          '<td class="num">' + r.draws + "</td>" +
-          '<td class="num pts">' + formatPts(r.points) + "</td>" +
-          "</tr>"
-        );
-      })
-      .join("");
-    host.innerHTML =
-      '<table class="leaderboard"><thead><tr>' +
-      '<th class="rank">#</th><th>Player</th>' +
-      '<th class="num">W</th><th class="num">L</th><th class="num">D</th>' +
-      '<th class="num">Pts</th>' +
-      "</tr></thead><tbody>" + body + "</tbody></table>";
-  }
-
-  function formatPts(p) {
-    return Number.isInteger(p) ? String(p) : p.toFixed(1);
   }
 
   // ---- Upcoming ------------------------------------------------------------
@@ -219,7 +183,6 @@
   // ---- Data loading --------------------------------------------------------
 
   function loadStatic() {
-    CT.api("/api/leaderboard").then(renderLeaderboard).catch(noop);
     CT.api("/api/games?status=upcoming").then(renderUpcoming).catch(noop);
     CT.api("/api/games?status=completed").then(function (games) {
       // Most recent first.

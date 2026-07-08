@@ -337,32 +337,6 @@ main {
 .moves .mv:hover { background: var(--off-white); }
 .moves .mv.active { background: var(--accent); color: #fff; }
 
-/* ---- Leaderboard -------------------------------------------------------- */
-
-table.leaderboard {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-table.leaderboard th,
-table.leaderboard td {
-  padding: 0.55rem 0.75rem;
-  text-align: left;
-}
-table.leaderboard th {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  border-bottom: 1px solid var(--line);
-}
-table.leaderboard td { border-bottom: 1px solid var(--off-white); }
-table.leaderboard td.num,
-table.leaderboard th.num { text-align: center; width: 2.4rem; }
-table.leaderboard td.pts { font-weight: 700; color: var(--accent-dark); }
-table.leaderboard tr:last-child td { border-bottom: none; }
-.rank { color: var(--muted); width: 1.6rem; }
-
 /* ---- Game list rows ----------------------------------------------------- */
 
 .game-row {
