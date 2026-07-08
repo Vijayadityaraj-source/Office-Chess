@@ -9,6 +9,7 @@ concurrent auto-saves from the supervisor page don't corrupt the store.
 import json
 import os
 import threading
+import urllib.request
 from datetime import datetime
 
 from flask import Flask, jsonify, request, send_from_directory, abort, render_template, send_from_directory
@@ -34,19 +35,77 @@ app = Flask(
 
 # ---------------------------------------------------------------------------
 # Storage helpers
+#
+# Render's free tier runs on an ephemeral filesystem: the container disk is
+# wiped back to the Git repo contents on every spin-down / redeploy / restart,
+# so any games written to the local JSON files are lost. When the two Upstash
+# env vars are present we treat Upstash Redis as the durable source of truth
+# (via its HTTP REST API — no persistent socket, ideal for a stateless app).
+# With no env vars we fall back to plain local files, so local dev is unchanged.
 # ---------------------------------------------------------------------------
 
-def _read_json(path):
+UPSTASH_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
+UPSTASH_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+USE_REDIS = bool(UPSTASH_URL and UPSTASH_TOKEN)
+
+# Which Redis key mirrors each local data file.
+_REDIS_KEYS = {
+    PLAYERS_FILE: "chess:players",
+    GAMES_FILE: "chess:games",
+}
+
+
+def _redis_command(*parts):
+    """Run one Redis command via the Upstash REST API and return its result."""
+    req = urllib.request.Request(
+        UPSTASH_URL,
+        data=json.dumps(list(parts)).encode("utf-8"),
+        headers={
+            "Authorization": "Bearer " + UPSTASH_TOKEN,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.load(resp).get("result")
+
+
+def _read_file_json(path):
     with open(path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
 
-def _write_json(path, data):
+def _write_file_json(path, data):
     """Write atomically: dump to a temp file then replace the original."""
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)
     os.replace(tmp, path)
+
+
+def _read_json(path):
+    if USE_REDIS:
+        key = _REDIS_KEYS.get(path)
+        if key:
+            raw = _redis_command("GET", key)
+            if raw is None:
+                # First run: key doesn't exist yet. Seed Redis from the file
+                # committed to the repo (e.g. the 22 players, an empty games
+                # list) so it becomes the durable baseline.
+                data = _read_file_json(path)
+                _redis_command("SET", key, json.dumps(data, ensure_ascii=False))
+                return data
+            return json.loads(raw)
+    return _read_file_json(path)
+
+
+def _write_json(path, data):
+    if USE_REDIS:
+        key = _REDIS_KEYS.get(path)
+        if key:
+            _redis_command("SET", key, json.dumps(data, ensure_ascii=False))
+            return
+    _write_file_json(path, data)
 
 
 def load_players():
