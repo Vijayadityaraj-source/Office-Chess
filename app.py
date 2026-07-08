@@ -10,6 +10,7 @@ import hmac
 import json
 import os
 import threading
+import time
 import urllib.request
 from datetime import datetime, timedelta
 
@@ -274,6 +275,12 @@ def login_page():
 @app.route("/public/<path:filename>")
 def public_files(filename):
     return send_from_directory(PUBLIC_DIR, filename)
+
+
+@app.route("/health")
+def health():
+    # Cheap liveness endpoint for the keep-alive pinger — no storage access.
+    return "ok", 200
 
 
 # ---------------------------------------------------------------------------
@@ -594,6 +601,39 @@ def api_leaderboard():
 @app.errorhandler(409)
 def _json_error(err):
     return jsonify({"error": getattr(err, "description", str(err))}), err.code
+
+
+# ---------------------------------------------------------------------------
+# Keep-alive
+#
+# Render's free tier spins an instance down after ~15 min without inbound
+# traffic (next visit then pays a cold start). Render injects RENDER_EXTERNAL_URL
+# with the public URL, so we ping our own /health on a timer to keep the
+# instance warm. It's a no-op locally, where that env var is absent.
+# ---------------------------------------------------------------------------
+
+def _start_keepalive():
+    base = os.environ.get("RENDER_EXTERNAL_URL")
+    if not base:
+        return  # local / non-Render: nothing to keep alive
+    url = base.rstrip("/") + "/health"
+    interval = int(os.environ.get("KEEPALIVE_SECONDS", "600"))  # 10 min < 15 min
+    if interval <= 0:
+        return  # explicitly disabled via KEEPALIVE_SECONDS=0
+
+    def loop():
+        while True:
+            time.sleep(interval)
+            try:
+                urllib.request.urlopen(url, timeout=10).read()
+            except Exception:
+                pass  # a missed ping is harmless; try again next interval
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
+# Runs on import too, so it starts under gunicorn (not just `python app.py`).
+_start_keepalive()
 
 
 if __name__ == "__main__":

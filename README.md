@@ -45,6 +45,23 @@ password held in a Flask signed-cookie session. Configure via environment:
 Auth endpoints: `GET /api/auth/status`, `POST /api/auth/login` `{password}`,
 `POST /api/auth/logout`. All write endpoints return `401` without a session.
 
+## Keeping the Render free instance awake
+
+Render free web services spin down after ~15 min idle; the next visit pays a
+cold start (~30–60s). Data is safe regardless (it lives in Upstash), so this is
+purely about latency.
+
+The app self-pings to stay warm: on Render, `RENDER_EXTERNAL_URL` is set
+automatically, and a background thread hits `GET /health` every
+`KEEPALIVE_SECONDS` (default 600). No setup needed — it's a no-op locally where
+that env var is absent. Set `KEEPALIVE_SECONDS=0` to disable.
+
+Self-ping keeps a running instance warm but can't wake one that has already
+spun down (e.g. right after a redeploy, before any visit). For belt-and-braces
+reliability, also point an external monitor (e.g. UptimeRobot or cron-job.org)
+at `https://<your-app>/health` on a 5–10 min interval — that both keeps it warm
+and revives it after any downtime.
+
 ## API
 
 | Method & path            | Description                                     |
